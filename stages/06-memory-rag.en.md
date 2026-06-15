@@ -55,8 +55,8 @@ See [Stage 2](02-prompt-engineering.en.md) for the full comparison.
 | Sub-problem | What it solves | Concrete example | Covered in this stage? |
 |---|---|---|---|
 | **Select** | Which external information should be pulled into the window | User asks "Which cafe near me is good?" → pull 3 highly rated places from a Yelp DB → put them into the prompt | ✅ Core theme (RAG / vector search / GraphRAG) |
-| **Write** | Which interactions / lessons should be written into long-term memory | User said last week "I eat vegan" → write it to memory; when they ask for restaurant suggestions again, retrieve it so you do not recommend meat | ✅ Core theme (memory layers) |
-| **Compress** | How to compress an overlong conversation | 50 turns exceed 200k tokens → auto-summarize the first 40 turns, keep the last 10 turns verbatim | ⚠️ Partial (here + Stage 7 Harness `context manager`) |
+| **Write** | Which interactions / lessons should be written into long-term memory | User said last week "I eat vegan" → write it to memory; when they ask for restaurant suggestions again, retrieve it so you do not recommend meat. **2025-2026 practice: Policy-driven memory write using LLM tools and hierarchical fact consolidation.** | ✅ Core theme (memory layers) |
+| **Compress** | How to compress an overlong conversation / shrink memory footprints | 50 turns exceed 200k tokens → auto-summarize the first 40 turns, keep the last 10 turns verbatim. **2025-2026 practice: Asynchronous memory compaction, auto 'Context Folding' on subtask completion, and active Priority Decay pruning.** | ✅ Covered in Stage 6.2.4 + Stage 7 Harness `context manager` |
 | **Isolate** | How to split windows across multiple agents | The supervisor sees the whole picture, workers only see their own slice, and they do not interfere with one another | ❌ Covered in Stage 7 multi-agent |
 
 ### Four concepts commonly mixed up

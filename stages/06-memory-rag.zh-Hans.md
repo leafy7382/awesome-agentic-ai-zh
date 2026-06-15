@@ -55,8 +55,8 @@
 | Sub-problem | 解决什么 | 具体例子 | 本 stage cover？ |
 |---|---|---|---|
 | **Select** | 要把 **哪些** 外部信息捞进窗口 | user 问“我家附近哪间 cafe 好吃”→ 从 Yelp DB 捞 3 家评分高的 → 塞进 prompt | ✅ 主轴（RAG / vector search / GraphRAG） |
-| **Write** | 要把 **哪些** 互动 / 教训写进长期记忆 | user 上周说“我吃纯素”→ 写进 memory；这周又问餐厅推荐时，retrieve 出来避免推肉食 | ✅ 主轴（memory layers） |
-| **Compress** | 对话太长怎么压 | 50 轮对话超过 200k token → 自动摘要前 40 轮、保留最后 10 轮原文 | ⚠️ 部分（这里 + Stage 7 Harness `context manager`） |
+| **Write** | 要把 **哪些** 互动 / 教训写进长期记忆 | user 上周说“我吃纯素”→ 写进 memory；这周又问餐厅推荐时，retrieve 出来避免推肉食。**2025-2026 常规：由 Agent 自主调用工具 write（Policy-Driven Memory）与层级化事实整合** | ✅ 主轴（memory layers） |
+| **Compress** | 对话太长怎么压 / 记忆如何瘦身 | 50 轮对话超过 200k token → 自动摘要前 40 轮、保留最后 10 轮原文。**2025-2026 常规：引入后台异步记忆压缩（Compaction）、复杂任务结束自动「上下文折叠（Context Folding）」与优先权衰减（Priority Decay）主动修剪** | ✅ 本章重点（6.2.4 节）+ Stage 7 Harness `context manager` |
 | **Isolate** | 多 agent 各自窗口怎么分 | supervisor 看全局、worker 只看自己那段，彼此不串扰 | ❌ Stage 7 multi-agent 处理 |
 
 ### 四个常被混淆的概念
