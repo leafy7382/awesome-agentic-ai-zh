@@ -8,6 +8,10 @@
 
 # awesome-agentic-ai-zh
 
+### 🤖 AI Agent Learning Roadmap — From Basic LLM Concepts to Building Multi-Agent Systems
+
+🎓 **Tailored Version for the NYCU (National Yang Ming Chiao Tung University) AI Agent Co-Learning Project**
+
 </div>
 
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -27,6 +31,17 @@
 ## 🎯 Why this exists
 
 **What this repo is**: **a learning roadmap + 240+ curated resources + simple illustrative cases** — three pillars helping AI / AI-agent learners go from "I don't know where to start" to "I can design multi-agent systems."
+
+> 🎓 **NYCU Faculty & Students Dedicated Routing Guide**:
+> To meet the diverse needs of NYCU's interdisciplinary community (ranging from CS/EE, Bio-medicine, Photonics, to Management and Social Sciences), this roadmap features two distinct, complementary learning paths based on your academic background and objectives:
+> 
+> * **Track A — CLI Power User (Tool Integration Path)**:
+>   * **Audience**: Faculty, researchers, and students from non-CS backgrounds (e.g., Medicine, Business, Humanities) who want to integrate AI agents into their daily research, teaching, writing, and admin workflows (e.g., automating literature review, report summarization, basic coding helper) to boost immediate productivity.
+>   * **Focus**: Do not reinvent the wheel. Learn how to configure and orchestrate existing CLI Agents (e.g., Claude Code, Aider). Master writing `CLAUDE.md` rules and connecting pre-built MCP servers with minimal engineering overhead for maximum productivity.
+> 
+> * **Track B — Agent Builder (System Architecture Path)**:
+>   * **Audience**: CS/EE and engineering students/researchers who have a programming foundation or are working on lab projects involving custom agentic systems, automated analytics platforms, or tailored enterprise AI applications.
+>   * **Focus**: Dive deep into systems software. Implement ReAct reasoning loops in Python, design data flows and memory structures (e.g., memory compaction and forgetting curves), write input validation and execution sandboxes, and orchestrate Multi-Agent systems with deadlock-prevention guardrails.
 
 Concretely:
 
