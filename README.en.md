@@ -10,7 +10,7 @@
 
 ### 🤖 AI Agent Learning Roadmap — From Basic LLM Concepts to Building Multi-Agent Systems
 
-🎓 **Tailored Version for the NYCU (National Yang Ming Chiao Tung University) AI Agent Co-Learning Project**
+🎓 **Dedicated AI Agent Co-Learning Guide for University Faculty, Researchers, and Students**
 
 </div>
 
@@ -32,8 +32,8 @@
 
 **What this repo is**: **a learning roadmap + 240+ curated resources + simple illustrative cases** — three pillars helping AI / AI-agent learners go from "I don't know where to start" to "I can design multi-agent systems."
 
-> 🎓 **NYCU Faculty & Students Dedicated Routing Guide**:
-> To meet the diverse needs of NYCU's interdisciplinary community (ranging from CS/EE, Bio-medicine, Photonics, to Management and Social Sciences), this roadmap features two distinct, complementary learning paths based on your academic background and objectives:
+> 🎓 **Dedicated Routing Guide for University Faculty & Students**:
+> To meet the diverse needs of the interdisciplinary academic community (ranging from Engineering/CS, Bio-medicine, to Management and Social Sciences), this roadmap features two distinct, complementary learning paths based on your background and objectives:
 > 
 > * **Track A — CLI Power User (Tool Integration Path)**:
 >   * **Audience**: Faculty, researchers, and students from non-CS backgrounds (e.g., Medicine, Business, Humanities) who want to integrate AI agents into their daily research, teaching, writing, and admin workflows (e.g., automating literature review, report summarization, basic coding helper) to boost immediate productivity.
