@@ -316,7 +316,37 @@ The essence of MCP is decoupling the "LLM Host" from the "Tool Provider". Howeve
 | **Use Case** | Building a single-purpose Agent; tools will only be used inside this project. | Writing a tool you want Cursor, Claude Code, and other developer Agent tools to use directly. |
 | **Runtime** | Tool functions and LLM orchestration code run in the same process, sharing memory. | Tools require independent environments (e.g., different languages, Docker sandboxes, databases). |
 | **Complexity** | Single project structure, trivial to debug and fast to prototype. | Modular microservices architecture; tool code updates and deploys independently. |
-| **Ops & Security** | Straightforward single-process deployment; suitable for trusted code. | Needs strict permission gates and sandboxed execution environments. |
+| **Security & Privacy** | Straightforward single-process deployment; suitable for trusted code. | Needs strict permission gates and sandboxed execution environments. |
+
+#### 3. To Write or Not to Write an MCP Server: Demand-Driven, Not a Rigid Rule
+
+Even for students from Computer Science or Electrical Engineering (CS/EE) backgrounds, **writing an MCP server from scratch is never a mandatory chore**. The core principle of software engineering is: **"Find existing tools first, delegate boilerplate generation to AI second, and only manually implement as a last resort."** Here is a pragmatic decision path when encountering MCP requirements:
+
+```
+                  Encountering an external tool or data source to connect
+                                      │
+                  ┌───────────────────┴───────────────────┐
+                  ▼                                       ▼
+       [Reuse First] Look for existing tools      [No Existing Tool] Evaluate Needs
+       Check mcp-skills-catalog or                If it is a single-use tool within a project,
+       awesome-mcp-servers lists first            just write a Local Tool (Stage 3).
+                  │                                       │
+            ┌─────┴─────┐                                 ▼
+            ▼           ▼                       [Need Cross-Host Reuse]
+       Reuse Tool   No Tool Found ───────┐      Decide to use MCP, but don't write it manually!
+            │                            │                │
+            ▼                            ▼                ▼
+       Install & Use            [AI Generated] Let AI    [Rare Exceptions] Hand-Craft
+       directly                 write it. Give AI API    For proprietary lab equipment,
+                                specs & MCP boilerplate  confidential databases, or
+                                to generate the server.  complex custom security sandboxes.
+```
+
+*   **The Keep-It-Simple Principle: AI Collaboration for Everyone**:
+    *   **Non-CS/EE Students and Faculty**: When encountering MCP requirements, **you should absolutely let AI write it**. You only need to pass the target API specifications and desired tool inputs/outputs to Claude or another LLM, and instruct it: "Write a simple MCP server using the Python MCP SDK and provide an example `mcp.json` config." Run it directly using `npx` or `python` when generated.
+    *   **CS/EE Students and Developers**: Do not waste time manually writing boilerplate code for JSON-RPC serialization and protocol handshakes. Focus on the **"Domain Logic" behind the tool** and **API security design**. Let AI generate the communication glue. Only dive into manual code optimization and security audits when you need to **interface with custom lab hardware**, **connect to private databases**, or handle **strict local security sandboxes**.
+    *   **Prioritize Availability**: If there is an existing MCP server for Google Drive, Slack, Postgres, etc., just use it. Do not reinvent the wheel.
+
 
 ### What is MCP (Positioning First)
 
