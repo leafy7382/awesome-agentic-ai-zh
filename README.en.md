@@ -41,7 +41,7 @@
 > 
 > * **Track B — Agent Builder (System Architecture Path)**:
 >   * **Audience**: CS/EE and engineering students/researchers who have a programming foundation or are working on lab projects involving custom agentic systems, automated analytics platforms, or tailored enterprise AI applications.
->   * **Focus**: Dive deep into systems software. Implement ReAct reasoning loops in Python, design data flows and memory structures (e.g., memory compaction and forgetting curves), write input validation and execution sandboxes, and orchestrate Multi-Agent systems with deadlock-prevention guardrails.
+>   * **Focus**: Dive deep into systems software. Implement ReAct reasoning loops in Python, design data flows and memory governance structures (e.g., background memory compaction, context folding on subtask completion, active priority decay pruning, and policy-driven memory tools), write input validation and execution sandboxes, and orchestrate Multi-Agent systems with deadlock-prevention guardrails.
 
 Concretely:
 
