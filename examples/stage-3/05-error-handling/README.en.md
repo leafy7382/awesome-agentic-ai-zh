@@ -65,10 +65,14 @@ Errors should be structured data, so the LLM has context to make decisions:
 | `raise Exception("failed")` | `return {"error": "network timeout", "retry_hint": "try again in 1s"}` |
 | `return "failed"` | `return {"error": "...", "category": "transient", "retry_hint": "..."}` |
 | Silent crash / Unhandled exceptions | Use `try-except Exception` in the agent loop to catch unexpected tool failures and wrap them as `{"error": ...}` to feed back to LLM |
-| Unvalidated LLM argument format | Catch `json.JSONDecodeError` during tool call execution to prevent malformed LLM outputs from crashing the host process |
-| Unbounded retry | `max_iter` safety + business-layer retry quota |
+| Unvalidated LLM argument format | Catch `json.JSONDecodeError` during tool call execution and perform defensive parameter validation (preventing `..` path traversal) |
+| Unbounded retry (Burns Token budget) | Implement a **Circuit Breaker** mechanism to automatically abort the loop when tool calls fail 3 consecutive times |
 
-Returning just `"failed"` leaves the model with nothing to act on. Adding `retry_hint`, error category, and recovery suggestions gives the model enough context to choose. In a production environment, **never let tool exceptions propagate unhandled to the main agent loop**, as it will crash the agent. Wrap tool calls in `try-except` blocks to transform raw exceptions into structured JSON error formats. Additionally, implement **JSON parsing defense** to safely handle malformed tool arguments returned by the LLM. Finally, cap your retries — otherwise the agent loops forever on a broken tool.
+Returning just `"failed"` leaves the model with nothing to act on. Adding `retry_hint`, error category, and recovery suggestions gives the model enough context to choose. In a production environment, **never let tool exceptions propagate unhandled to the main agent loop**, as it will crash the agent. Wrap tool calls in `try-except` blocks to transform raw exceptions into structured JSON error formats.
+
+Additionally, the project has implemented the following safety guards:
+- **Defensive Parameter Validation**: Sanitize parameters before tool execution to reject illegal characters such as `..`, `/`, and `\\` that could lead to path traversal or injection attacks.
+- **Circuit Breaker Protection**: Maintain a counter in the ReAct loop; once tools **fail 3 times consecutively**, the system automatically aborts to prevent the LLM from entering a loop of futile attempts and wasting Token budget.
 
 ## What to watch on each path
 

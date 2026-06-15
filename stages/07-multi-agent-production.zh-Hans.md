@@ -79,14 +79,29 @@ def reviewer_agent(report):
     prompt = f"请审查以下报告，列出需要修正的具体缺点。若无问题，请回复 'PASSED'：\n{report}"
     return call_llm(system="你是一位严格的审查员", user=prompt)
 
-# 协作循环
+# 协作循环与死锁防护
+MAX_ITER = 3
 report = researcher_agent("AI Agent 2026 技术趋势")
-for i in range(3):
+for i in range(MAX_ITER):
     feedback = reviewer_agent(report)
     if "PASSED" in feedback:
+        print("✅ 审查通过！")
         break
+    
+    # 达到最大迭代上限仍未通过时，熔断并引入人工介入 (Human-in-the-Loop)
+    if i == MAX_ITER - 1:
+        print("⚠️ 已达最大修正次数，进入人工覆核状态...")
+        report = human_review_fallback(report, feedback)
+        break
+        
     report = researcher_agent("AI Agent 2026 技术趋势", feedback)
 ```
+
+> ⚠️ **死锁与无穷循环防范指引**
+> * **死锁威胁 (Agent Deadlocks)**：在 Researcher-Reviewer 模式中，若 Reviewer 的修改建议模糊，或 Researcher 的修正无法满足审查标准，双方容易陷入无限对话循环，迅速烧毁 Token 预算。
+> * **防御设计**：
+>   1. **强制迭代上限 (Max Iteration Guardrail)**：在程序中如上实作 `MAX_ITER`，一旦超出限制便强制跳出。
+>   2. **人工介入机制 (Human-in-the-Loop Fallback)**：当达到迭代上限仍未收敛时，将控制权交还给人类，由人类进行最终的判断或手动修改，防止 Agent 系统失控。
 
 ### ⚠ 但你真的需要 multi-agent 吗？
 

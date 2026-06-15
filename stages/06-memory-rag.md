@@ -434,6 +434,20 @@ RAG 解決「從**外部知識庫** retrieve 相關片段」——但 agent 還�
 
 > 💡 **Track B 重點**：你 Stage 7 寫 multi-agent 時，每個 agent 都會有「自己的 memory」+「shared memory」雙層——需要的 pattern 通常是 **2 + 3 混用**。先在本 stage 把 3 種 pattern 跑透，到 Stage 7 才不會被 multi-agent memory 設計卡住。
 
+### 6.2.4 — 長期記憶的維護：記憶壓縮與遺忘機制 ⭐
+
+在生產環境中，如果只是一味地將所有對話歷史與工具執行結果寫入向量資料庫，隨著時間累積，系統會面臨兩個問題：**Context Window 雜訊爆滿**與**向量檢索精準度下降**。因此，維護長期記憶需要引進以下兩種設計：
+
+#### 1. 記憶壓縮（Memory Compaction）
+* **原理**：當歷史記憶或向量庫中的 Fragmented Facts（零碎事實）達到一定閾值時，系統會在背景啟動一個非同步的 LLM 行程。該行程會對這些事實進行語義合併、去除重複資訊，並將其壓縮為更高層次的結構化事實。
+* **做法**：例如原本記錄了 5 條「使用者提到他住在台北」的對話細節，壓縮後僅保留一條 `User profile: lives in Taipei`。
+
+#### 2. 遺忘曲線（Forgetting Curve / Weight Decay）
+* **原理**：Agent 應定期清理不常用且老舊的記憶。
+* **做法**：
+  * **時間戳記衰減（Time-based Decay）**：為每條存入的記憶加上時間戳記，檢索時其分數（Retrieval Score）會乘以一個時間衰減係數：\(S_{final} = S_{similarity} \times e^{-\lambda t}\)。
+  * **存取計數器（Access Counter）**：記錄每條記憶被 LLM「想起（檢索並使用）」的次數。長期未被存取且分數過低的記憶，將定期從資料庫中被物理刪除（Pruning）。
+
 ### ⭐ 5 個可上線使用的 Memory Layer（按 use case 挑）
 
 > Star 數與 benchmark 會變動；這裡重點不是排行，而是理解每個 memory layer 的設計取向。

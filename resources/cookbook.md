@@ -243,6 +243,33 @@ Claude 回（會顯示 tool call icon）：Echo: hello world
 | Claude 不主動叫 tool | description 太籠統 | description 改成「When the user asks X, use this tool」式的具體 trigger |
 | stdio 跟 SSE 哪個用？ | local desktop integration 用 stdio；remote / web 用 SSE | 第一個 server 一律用 stdio |
 
+### 🛡️ MCP 安全防禦指引：防範路徑遍歷與指令注入
+
+當您的 MCP 伺服器提供檔案讀寫（如 `read_file`）或命令執行功能時，**LLM 可能會被惡意 Prompt 誘導，傳入包含 `..` 的路徑以存取系統敏感檔案**。在撰寫 MCP 伺服器時，必須實作路徑安全校驗。
+
+#### 1. 檔案路徑防範路徑遍歷 (Path Traversal Defense)
+不要直接信任模型傳入的相對路徑。以下是推薦的防禦性程式碼範例：
+
+```python
+import os
+
+SAFE_WORKSPACE = os.path.abspath("./safe_workspace") # 定義安全工作區目錄
+
+def is_safe_path(target_path: str) -> bool:
+    # 取得目標檔案的絕對路徑
+    abs_target = os.path.abspath(os.path.join(SAFE_WORKSPACE, target_path))
+    # 確保目標路徑的開頭為安全工作區目錄，防止用 .. 溢出安全邊界
+    return os.path.commonpath([SAFE_WORKSPACE, abs_target]) == SAFE_WORKSPACE
+
+# 在 MCP 伺服器的 call_tool 中使用：
+if not is_safe_path(arguments["path"]):
+    return [TextContent(type="text", text="Error: Access denied. Security validation failed.")]
+```
+
+#### 2. 命令執行防範指令注入 (Command Injection Defense)
+* 避免直接使用 `shell=True` 的 `subprocess.run`。
+* 儘量使用引數清單（List of Arguments）呼叫指令，並對輸入參數進行字元白名單檢查。
+
 ### 進一步
 
 - 看 [Stage 5.2](../stages/05-claude-code-ecosystem.md#52--mcpmodel-context-protocol-基礎) 的 MCP 完整介紹

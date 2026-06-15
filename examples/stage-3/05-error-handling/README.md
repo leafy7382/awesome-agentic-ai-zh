@@ -72,10 +72,14 @@ python test_anthropic.py # 驗 Path B (Anthropic) starter_anthropic.py 邏輯
 | `raise Exception("failed")` | `return {"error": "network timeout", "retry_hint": "try again in 1s"}` |
 | `return "failed"` | `return {"error": "...", "category": "transient", "retry_hint": "..."}` |
 | 直接崩潰 / 未捕獲例外狀況 | 在主程式 loop 中使用 `try-except Exception` 捕獲意外錯誤並包裝成 `{"error": ...}` 回傳給 LLM |
-| 未校驗 LLM 參數格式 | 在主程式中捕獲 `json.JSONDecodeError`，避免 JSON 毀損導致主程式崩潰 |
-| 無限 retry | `max_iter` safety + 業務層 retry quota |
+| 未校驗 LLM 參數格式 | 在主程式中捕獲 `json.JSONDecodeError` 及進行防禦性參數安全檢查（防止 `..` 路徑遍歷） |
+| 無限 retry (燒毀 Token) | 實作**斷路器（Circuit Breaker）**機制，當工具連續失敗達 3 次時自動熔斷中斷迴圈 |
 
-只回傳 `"failed"` 讓模型不知道下一步；加入 `retry_hint`、錯誤類型與可恢復建議，模型才有足夠 context 做決策。同時，在生產環境中，**絕對不能讓工具的執行例外（Exceptions）直接傳播到主行程**，否則會導致 Agent 主程式崩潰。應使用 `try-except` 捕獲所有異常並轉化為結構化 JSON 錯誤回傳。此外，應做好 **JSON 解析防禦**，避免模型輸出格式損壞導致 JSON 解析失敗。retry 次數也要有限制，否則 agent 會在壞掉的工具前面無限打轉。
+只回傳 `"failed"` 讓模型不知道下一步；加入 `retry_hint`、錯誤類型與可恢復建議，模型才有足夠 context 做決策。同時，在生產環境中，**絕對不能讓工具的執行例外（Exceptions）直接傳播到主行程**，否則會導致 Agent 主程式崩潰。應使用 `try-except` 捕獲所有異常並轉化為結構化 JSON 錯誤回傳。
+
+此外，專案已實作以下安全防禦：
+- **防禦性參數校驗**：工具執行前對參數進行過濾，拒絕包含 `..`、`/`、`\\` 等可能導致路徑遍歷與注入攻擊的非法字元。
+- **斷路器防護（Circuit Breaker）**：在 ReAct 迴圈中加入計數器，一旦工具**連續失敗達 3 次**，系統自動熔斷中斷，防止 LLM 不斷嘗試無效操作而燒毀大量 Token 預算。
 
 ## 兩個 path 觀察重點
 

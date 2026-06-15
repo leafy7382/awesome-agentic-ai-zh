@@ -243,6 +243,33 @@ Claude replies (with a tool call icon): Echo: hello world
 | Claude doesn't proactively call the tool | `description` is too generic | Refine `description` to be specific trigger phrases like "When the user asks X, use this tool" |
 | stdio vs. SSE? | `stdio` is for local desktop integration; `SSE` is for remote/web | Always use `stdio` for the first server. |
 
+### 🛡️ MCP Security Guidelines: Preventing Path Traversal and Command Injection
+
+When your MCP server provides file read/write (e.g., `read_file`) or command execution capabilities, **LLMs can be manipulated by malicious prompts to input relative paths containing `..` to access sensitive system files**. When writing an MCP server, you must implement path safety validation.
+
+#### 1. File Path Validation (Path Traversal Defense)
+Never trust relative paths directly from the model. Here is a recommended defensive code pattern in Python:
+
+```python
+import os
+
+SAFE_WORKSPACE = os.path.abspath("./safe_workspace") # Define the safe workspace folder
+
+def is_safe_path(target_path: str) -> bool:
+    # Get the absolute path of the target file
+    abs_target = os.path.abspath(os.path.join(SAFE_WORKSPACE, target_path))
+    # Ensure the target path starts with the SAFE_WORKSPACE path, preventing ".." jailbreaks
+    return os.path.commonpath([SAFE_WORKSPACE, abs_target]) == SAFE_WORKSPACE
+
+# Usage inside the MCP server's call_tool:
+if not is_safe_path(arguments["path"]):
+    return [TextContent(type="text", text="Error: Access denied. Security validation failed.")]
+```
+
+#### 2. Command Execution (Command Injection Defense)
+* Avoid using `shell=True` in `subprocess.run`.
+* Prefer using a list of arguments (array of arguments) to invoke commands, and sanitize input parameters against a character allowlist.
+
 ### Further Reading
 
 - See [Stage 5.2](../stages/05-claude-code-ecosystem.en.md#52--mcp-model-context-protocol--foundation) for a full introduction to MCP.

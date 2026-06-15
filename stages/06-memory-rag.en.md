@@ -434,6 +434,20 @@ This is the mental model to establish before starting the exercises. The exercis
 
 > 💡 **Track B focus**: in Stage 7 multi-agent systems, each agent usually has "its own memory" + "shared memory". In practice that means a **Pattern 2 + Pattern 3 hybrid**. If you internalize these three patterns now, Stage 7 memory design becomes much easier.
 
+### 6.2.4 — Long-Term Memory Maintenance: Memory Compaction & Forgetting Curves ⭐
+
+In a production environment, simply feeding all conversational history and tool outputs into a vector database leads to two problems over time: **Context Window noise saturation** and **diminishing vector retrieval accuracy**. To maintain a high-fidelity long-term memory, two architectures should be introduced:
+
+#### 1. Memory Compaction
+* **Concept**: When fragmented facts in the vector store reach a certain threshold, the system triggers an asynchronous background LLM process. This task merges semantically duplicate or similar facts, filters out noise, and consolidates them into higher-level structured facts.
+* **Practice**: If the store contains 5 separate logs of "user mentioned they live in Taipei," compaction compresses them into a single key-value: `User profile: lives in Taipei`.
+
+#### 2. Forgetting Curves (Weight Decay)
+* **Concept**: The agent must prune stale, low-value memories over time.
+* **Practice**:
+  * **Time-based Decay**: Apply a timestamp to every stored fact. During retrieval, the similarity score is multiplied by an exponential decay coefficient: \(S_{final} = S_{similarity} \times e^{-\lambda t}\).
+  * **Access Counter**: Keep count of how many times a memory has been retrieved and used by the LLM. Memories that remain unaccessed for long periods and drop below a score threshold are periodically pruned (physically deleted) from the database.
+
 ### ⭐ 5 mainstream memory layers that can ship (choose by use case)
 
 > Star counts and benchmarks change. The point here is not ranking. The point is understanding the design orientation of each memory layer.

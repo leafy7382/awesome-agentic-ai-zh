@@ -79,14 +79,29 @@ def reviewer_agent(report):
     prompt = f"Review the following report and list specific improvements. If perfect, reply 'PASSED':\n{report}"
     return call_llm(system="You are a strict Reviewer", user=prompt)
 
-# Collaboration Loop
+# Collaboration Loop & Deadlock Prevention
+MAX_ITER = 3
 report = researcher_agent("AI Agent Trends in 2026")
-for i in range(3):
+for i in range(MAX_ITER):
     feedback = reviewer_agent(report)
     if "PASSED" in feedback:
+        print("✅ Review passed!")
         break
+    
+    # Trigger fallback when max iteration limit is reached
+    if i == MAX_ITER - 1:
+        print("⚠️ Max iterations reached. Entering human review fallback...")
+        report = human_review_fallback(report, feedback)
+        break
+        
     report = researcher_agent("AI Agent Trends in 2026", feedback)
 ```
+
+> ⚠️ **Deadlock & Infinite Loop Prevention Guidelines**
+> * **Agent Deadlocks**: In the Researcher-Reviewer pattern, if the Reviewer's feedback is vague or the Researcher fails to meet the criteria, the agents can enter an infinite dialog loop, rapidly draining your Token budget.
+> * **Defensive Design**:
+>   1. **Max Iteration Guardrail**: Enforce a strict `MAX_ITER` limit in the loop as shown above to guarantee termination.
+>   2. **Human-in-the-Loop Fallback**: When the iteration limit is reached without convergence, hand over execution to a human operator for final manual editing or approval, preventing the agent system from running out of control.
 
 ### ⚠ But do you really need multi-agent?
 
