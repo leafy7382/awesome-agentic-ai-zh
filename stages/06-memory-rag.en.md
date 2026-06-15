@@ -436,17 +436,27 @@ This is the mental model to establish before starting the exercises. The exercis
 
 ### 6.2.4 — Long-Term Memory Maintenance: Memory Compaction & Forgetting Curves ⭐
 
-In a production environment, simply feeding all conversational history and tool outputs into a vector database leads to two problems over time: **Context Window noise saturation** and **diminishing vector retrieval accuracy**. To maintain a high-fidelity long-term memory, two architectures should be introduced:
+In a production environment, simply feeding all conversational history and tool outputs into a vector database leads to two problems over time: **Context Window noise saturation** and **diminishing vector retrieval accuracy** (often referred to as **"Context Rot"**).
+
+In the 2025–2026 agent architecture landscape, long-term memory maintenance has evolved from "passive storage" to **"active, system-level memory governance."** When designing production-grade agents, three core mechanisms should be introduced:
 
 #### 1. Memory Compaction
-* **Concept**: When fragmented facts in the vector store reach a certain threshold, the system triggers an asynchronous background LLM process. This task merges semantically duplicate or similar facts, filters out noise, and consolidates them into higher-level structured facts.
-* **Practice**: If the store contains 5 separate logs of "user mentioned they live in Taipei," compaction compresses them into a single key-value: `User profile: lives in Taipei`.
+* **Concept**: When fragmented facts in the vector store reach a certain threshold, the system triggers an asynchronous background LLM process to merge duplicate semantically similar facts and filter out noise.
+* **2025-2026 Practices**:
+    * **Context Folding**: When an agent begins a complex subtask (e.g., coding or debugging), it records a high-resolution execution trace in a separate session. Once completed, the agent **"folds" (collapses)** the intermediate details, persisting only the final output and key lessons to the long-term memory, and physically deletes the intermediate trial logs.
+    * **Hierarchical Fact Consolidation**: Rather than doing flat summaries, the LLM integrates isolated facts (e.g., `User lives in Taipei` and `User bought an MRT pass`) into a structured user profile schema or relationship graph.
 
-#### 2. Forgetting Curves (Weight Decay)
-* **Concept**: The agent must prune stale, low-value memories over time.
-* **Practice**:
-  * **Time-based Decay**: Apply a timestamp to every stored fact. During retrieval, the similarity score is multiplied by an exponential decay coefficient: \(S_{final} = S_{similarity} \times e^{-\lambda t}\).
-  * **Access Counter**: Keep count of how many times a memory has been retrieved and used by the LLM. Memories that remain unaccessed for long periods and drop below a score threshold are periodically pruned (physically deleted) from the database.
+#### 2. Memory Decay & Active Pruning
+* **Concept**: The agent must actively remove stale, low-value, or contradicted memories to prevent "memory pollution" from interfering with current inference.
+* **2025-2026 Practices**:
+    * **Priority Decay**: Apply a timestamp to every stored fact. During retrieval, the similarity score is weighted by both time decay and importance. The LLM evaluates the importance score (1 to 10 scale) at write time, and the formula becomes:
+      \[S_{final} = S_{similarity} \times \text{Importance} \times e^{-\lambda t}\]
+    * **Active Pruning**: Introduce **Access Counters** and **Evidence Gating**. When a fact's \(S_{final}\) drops below a threshold, or when new contradictory evidence arrives (e.g., user profile updates to "living in Kaohsiung," which directly conflicts with old logs), the system automatically marks the old memory as expired and prunes it.
+
+#### 3. Policy-Driven Memory Management
+* **Concept**: Instead of hardcoding static heuristics, memory actions (write, update, read, and prune) are wrapped as **"Memory Tools"** that the agent invokes autonomously.
+* **2025-2026 Practices**: Modern agents are trained via Reinforcement Learning (e.g., GRPO or PPO) to actively evaluate their context. Inside the Chain-of-Thought, they autonomously decide: "This fact is crucial; I should invoke `save_memory` to remember it," or "This task is finalized; I will invoke `prune_memory` to clear out my context window." This embeds memory governance directly into the model's reasoning loop.
+
 
 ### ⭐ 5 mainstream memory layers that can ship (choose by use case)
 

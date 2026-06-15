@@ -436,17 +436,27 @@ RAG 解決「從**外部知識庫** retrieve 相關片段」——但 agent 還�
 
 ### 6.2.4 — 長期記憶的維護：記憶壓縮與遺忘機制 ⭐
 
-在生產環境中，如果只是一味地將所有對話歷史與工具執行結果寫入向量資料庫，隨著時間累積，系統會面臨兩個問題：**Context Window 雜訊爆滿**與**向量檢索精準度下降**。因此，維護長期記憶需要引進以下兩種設計：
+在生產環境中，如果一味地將所有對話歷史與工具執行結果寫入向量資料庫，隨著時間累積，系統會面臨兩個問題：**Context Window 雜訊爆滿**與**向量檢索精準度下降**（通常稱為**「上下文腐爛 Context Rot」**）。
+
+在 2025-2026 年的 Agent 架構實務中，長期記憶維護已從「被動儲存」演進為**「主動的系統級治理」**。設計生產級 Agent 時，必須引入以下三種核心機制：
 
 #### 1. 記憶壓縮（Memory Compaction）
-* **原理**：當歷史記憶或向量庫中的 Fragmented Facts（零碎事實）達到一定閾值時，系統會在背景啟動一個非同步的 LLM 行程。該行程會對這些事實進行語義合併、去除重複資訊，並將其壓縮為更高層次的結構化事實。
-* **做法**：例如原本記錄了 5 條「使用者提到他住在台北」的對話細節，壓縮後僅保留一條 `User profile: lives in Taipei`。
+* **原理**：當歷史記憶或向量庫中的 Fragmented Facts（零碎事實）達到一定閾值時，系統會在背景啟動非同步的 LLM 行程，進行語義合併與去重。
+* **2025-2026 最新常規作法**：
+    * **上下文摺疊（Context Folding）**：當 Agent 啟動複雜子任務（如撰寫程式碼或除錯）時，會開啟獨立的 session 記錄詳細軌跡；一旦子任務結束，Agent 會自動**「摺疊（Collapse）」**中間的步驟，只將「最終成果與核心教訓」沉澱進長期記憶，物理刪除中間的試錯日誌。
+    * **層級化事實整合（Hierarchical Fact Consolidation）**：LLM 不僅是做摘要，還會將零碎事實（例如 `User lives in Taipei` 和 `User bought an MRT pass`）整合進一個結構化的知識庫或關聯圖譜中，更新為單一的 profile 狀態。
 
-#### 2. 遺忘曲線（Forgetting Curve / Weight Decay）
-* **原理**：Agent 應定期清理不常用且老舊的記憶。
-* **做法**：
-  * **時間戳記衰減（Time-based Decay）**：為每條存入的記憶加上時間戳記，檢索時其分數（Retrieval Score）會乘以一個時間衰減係數：\(S_{final} = S_{similarity} \times e^{-\lambda t}\)。
-  * **存取計數器（Access Counter）**：記錄每條記憶被 LLM「想起（檢索並使用）」的次數。長期未被存取且分數過低的記憶，將定期從資料庫中被物理刪除（Pruning）。
+#### 2. 遺忘曲線與主動修剪（Memory Decay & Active Pruning）
+* **原理**：Agent 應主動清除低價值、過時或不再相關的記憶，防止「記憶污染（Memory Pollution）」干擾當前推論。
+* **2025-2026 最新常規作法**：
+    * **優先權衰減（Priority Decay）**：為每條存入的記憶加上時間戳記，檢索時其分數（Retrieval Score）會乘以時間衰減與重要性加權係數。重要性分數由 LLM 在寫入時評估（1-10 分），衰減公式演進為：
+      \[S_{final} = S_{similarity} \times \text{Importance} \times e^{-\lambda t}\]
+    * **主動修剪（Pruning）**：引入 **Access Counter（存取計數器）** 與 **Evidence Gating（證據門控）**。當事實的 \(S_{final}\) 低於特定閾值，或出現了相反的新證據（例如：用戶改住高雄，導致舊記憶矛盾），系統會自動將舊記憶標記為過期並進行物理刪除或移至冷存檔。
+
+#### 3. 策略驅動的記憶操作（Policy-Driven Memory Management）
+* **原理**：不再僅由系統寫死 rules，而是將記憶的「寫入、更新、讀取、廢棄」封裝成 Agent 可自主調用的**「記憶工具（Memory Tools）」**。
+* **2025-2026 最新常規作法**：Agent 經過強化學習（如 GRPO 或 PPO）訓練，在思維鏈（Chain-of-Thought）中會主動判斷：「這條資訊很重要，我需要呼叫 `save_memory` 工具記錄下來」或「此任務已完成，我應該呼叫 `prune_memory` 釋放 context window 空間」。這將記憶治理直接融入了模型的 reasoning 循環中。
+
 
 ### ⭐ 5 個可上線使用的 Memory Layer（按 use case 挑）
 
