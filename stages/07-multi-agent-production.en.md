@@ -53,6 +53,40 @@ Engineering work can be split into three layers, corresponding to different posi
 |---|---|---|
 | **Stage 5.5 Subagents** | Claude Code's native subagent mechanism (markdown-based, no coding) | General multi-agent frameworks (autogen / crewAI / langgraph, vendor-agnostic) |
 | **Stage 5.7 Claude Code source** | Claude Code source dissection (reference implementation case study) | General harness engineering principles (not tied to a specific vendor) |
+| **This Stage's Practice Concepts** | Multi-Agent collaboration patterns (see below) | Implementing code structures for multiple independent Agents interacting in a loop |
+
+### Key Multi-Agent Collaboration Patterns in 2026
+
+Before writing code, we must master two of the most widely used multi-agent orchestration patterns:
+
+#### 1. Debate Pattern
+* **Design Logic**: Multiple agent roles (e.g., PRO and CON) present independent arguments on the same topic, which are then evaluated by a neutral Judge agent.
+* **Core Advantage**: Reduces single-model bias and hallucination.
+* **Key Detail**: The LLM calls for PRO and CON must be **independent**. If CON sees PRO's output during generation, it leads to bias propagation.
+
+#### 2. Researcher-Reviewer Pattern
+* **Design Logic**: This is an **Iterative Refinement Workflow**. A Researcher agent produces an initial draft, and a Reviewer agent evaluates it against defined criteria (e.g., factual accuracy, code quality, readability) and suggests improvements. The Researcher refines the draft based on this feedback, repeating the cycle until a termination condition is met (e.g., review passes or max iterations reached).
+* **Core Advantage**: Ideal for scenarios requiring rigorous proofreading and high-quality outputs (e.g., long-form writing, automated code correction and testing).
+* **Conceptual Code Example**:
+```python
+def researcher_agent(topic, feedback=None):
+    prompt = f"Write a report about {topic}."
+    if feedback:
+        prompt += f" Please refine it based on this feedback: {feedback}"
+    return call_llm(system="You are a professional Researcher", user=prompt)
+
+def reviewer_agent(report):
+    prompt = f"Review the following report and list specific improvements. If perfect, reply 'PASSED':\n{report}"
+    return call_llm(system="You are a strict Reviewer", user=prompt)
+
+# Collaboration Loop
+report = researcher_agent("AI Agent Trends in 2026")
+for i in range(3):
+    feedback = reviewer_agent(report)
+    if "PASSED" in feedback:
+        break
+    report = researcher_agent("AI Agent Trends in 2026", feedback)
+```
 
 ### ⚠ But do you really need multi-agent?
 

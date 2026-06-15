@@ -64,9 +64,11 @@ python test_anthropic.py  # 验 Path B (Anthropic) starter_anthropic.py 逻辑
 |---|---|
 | `raise Exception("failed")` | `return {"error": "network timeout", "retry_hint": "try again in 1s"}` |
 | `return "failed"` | `return {"error": "...", "category": "transient", "retry_hint": "..."}` |
+| 直接崩溃 / 未捕获异常 | 在主程序 loop 中使用 `try-except Exception` 捕获意外错误并包装成 `{"error": ...}` 返回给 LLM |
+| 未校验 LLM 参数格式 | 在主程序中捕获 `json.JSONDecodeError`，避免 JSON 损坏导致主程序崩溃 |
 | 无限 retry | `max_iter` safety + 业务层 retry quota |
 
-只回传 `"failed"` 让模型不知道下一步；加入 `retry_hint`、错误类型与可恢复建议，模型才有足够 context 做决策。retry 次数也要有限制，否则 agent 会在坏掉的工具前面无限打转。
+只回传 `"failed"` 让模型不知道下一步；加入 `retry_hint`、错误类型与可恢复建议，模型才有足够 context 做决策。同时，在生产环境中，**绝对不能让工具的执行异常（Exceptions）直接传播到主进程**，否则会导致 Agent 主进程崩溃。应使用 `try-except` 捕获所有异常并转化为结构化 JSON 错误返回。此外，应做好 **JSON 解析防御**，避免模型输出格式损坏导致 JSON 解析失败。retry 次数也要有限制，否则 agent 会在坏掉的工具前面无限打转。
 
 ## 两个 path 观察重点
 

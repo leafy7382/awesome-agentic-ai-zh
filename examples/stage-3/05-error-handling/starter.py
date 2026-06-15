@@ -98,8 +98,34 @@ def react_loop(question: str, max_iter: int = 5, client: Any = None) -> dict:
             return {"final": text, "trace": trace, "steps": step + 1}
 
         for tc in tool_calls:
-            args = json.loads(tc.function.arguments)
-            obs = fetch_weather(args["city"]) if tc.function.name == "fetch_weather" else {"error": "unknown tool"}
+            # 1. 處理 JSON 解析防禦
+            try:
+                args = json.loads(tc.function.arguments)
+            except json.JSONDecodeError as je:
+                obs = {
+                    "error": "Invalid JSON arguments format",
+                    "details": str(je),
+                    "raw_arguments": tc.function.arguments,
+                }
+                args = {}
+            else:
+                # 2. 處理 Tool 執行時的異常例外
+                try:
+                    if tc.function.name == "fetch_weather":
+                        city = args.get("city")
+                        if not city:
+                            obs = {"error": "Missing required argument 'city'"}
+                        else:
+                            obs = fetch_weather(city)
+                    else:
+                        obs = {"error": f"Unknown tool: {tc.function.name}"}
+                except Exception as e:
+                    obs = {
+                        "error": "Tool execution failed due to an unexpected exception",
+                        "exception_type": type(e).__name__,
+                        "message": str(e),
+                    }
+            
             # OpenAI-compat 的 tool message content 接受字串、把 dict 序列化
             messages.append({
                 "role": "tool",

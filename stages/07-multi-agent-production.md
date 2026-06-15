@@ -53,6 +53,40 @@
 |---|---|---|
 | **Stage 5.5 Subagents** | Claude Code 原生 subagent 機制（markdown-based、不寫程式）| 通用 multi-agent framework（autogen / crewAI / langgraph、跨 vendor）|
 | **Stage 5.7 Claude Code source** | Claude Code source 解剖（參考實作 case study）| Harness engineering 通則（不綁特定 vendor）|
+| **本 Stage 實作概念** | Multi-Agent 協作模式設計（見下） | 實作多個獨立 Agent 在迴圈中交互的程式碼結構 |
+
+### 2026 年主流的 Multi-Agent 協作模式
+
+在進入實作前，我們必須掌握兩種最常用的多代理人編排（Orchestration）模式：
+
+#### 1. 辯論模式 (Debate Pattern)
+* **設計邏輯**：多個角色代理人（例如 PRO 與 CON）針對同一主題提出獨立見解，再由中立的裁判代理人（Judge）進行裁決。
+* **核心優勢**：降低單一模型的偏見與幻覺（Hallucination）。
+* **重要細節**：PRO 與 CON 的模型調用必須是**獨立（Independent Calls）**的。如果 CON 在生成論點時看得到 PRO 的內容，容易產生偏差傳播（Bias Propagation）。
+
+#### 2. 研究員-審查員模式 (Researcher-Reviewer Pattern)
+* **設計邏輯**：這是一種**迭代優化工作流（Iterative Refinement Workflow）**。研究員（Researcher）負責產出初稿，審查員（Reviewer）根據評估標準（如事實準確度、程式碼規範、文字通順度）提出修改意見。研究員根據意見修改後，再次提交審查，直到滿足終止條件（如通過審查或達到最大迭代次數）。
+* **核心優勢**：適合需要系統化校對與高品質產出的場景（如撰寫長文、程式碼自動修正與驗證）。
+* **程式碼概念範例**：
+```python
+def researcher_agent(topic, feedback=None):
+    prompt = f"撰寫關於 {topic} 的報告。"
+    if feedback:
+        prompt += f" 請根據以下審查建議進行修正：{feedback}"
+    return call_llm(system="你是一位專業的研究員", user=prompt)
+
+def reviewer_agent(report):
+    prompt = f"請審查以下報告，列出需要修正的具體缺點。若無問題，請回覆 'PASSED'：\n{report}"
+    return call_llm(system="你是一位嚴格的審查員", user=prompt)
+
+# 協作迴圈
+report = researcher_agent("AI Agent 2026 技術趨勢")
+for i in range(3):
+    feedback = reviewer_agent(report)
+    if "PASSED" in feedback:
+        break
+    report = researcher_agent("AI Agent 2026 技術趨勢", feedback)
+```
 
 ### ⚠ 但你真的需要 multi-agent 嗎？
 

@@ -53,6 +53,40 @@
 |---|---|---|
 | **Stage 5.5 Subagents** | Claude Code 原生 subagent 机制（markdown-based、不写程序）| 通用 multi-agent framework（autogen / crewAI / langgraph、跨 vendor）|
 | **Stage 5.7 Claude Code source** | Claude Code source 解剖（reference implementation case study）| Harness engineering 通则（不绑特定 vendor）|
+| **本 Stage 实作概念** | Multi-Agent 协作模式设计（见下） | 实作多个独立 Agent 在循环中交互的代码结构 |
+
+### 2026 年主流的 Multi-Agent 协作模式
+
+在进入实作前，我们必须掌握两种最常用的多智能体编排（Orchestration）模式：
+
+#### 1. 辩论模式 (Debate Pattern)
+* **设计逻辑**：多个角色智能体（例如 PRO 与 CON）针对同一主题提出独立见解，再由中立的裁判智能体（Judge）进行裁决。
+* **核心优势**：降低单一模型的偏见与幻觉（Hallucination）。
+* **重要细节**：PRO 与 CON 的模型调用必须是**独立（Independent Calls）**的。如果 CON 在生成论点时看得见 PRO 的内容，容易产生偏差传播（Bias Propagation）。
+
+#### 2. 研究员-审查员模式 (Researcher-Reviewer Pattern)
+* **设计逻辑**：这是一种**迭代优化工作流（Iterative Refinement Workflow）**。研究员（Researcher）负责产出初稿，审查员（Reviewer）根据评估标准（如事实准确度、代码规范、文字通顺度）提出修改意见。研究员根据意见修改后，再次提交审查，直到满足终止条件（如通过审查或达到最大迭代次数）。
+* **核心优势**：适合需要系统化校对与高质量产出的场景（如撰写长文、代码自动修正与验证）。
+* **代码概念范例**：
+```python
+def researcher_agent(topic, feedback=None):
+    prompt = f"撰写关于 {topic} 的报告。"
+    if feedback:
+        prompt += f" 请根据以下审查建议进行修正：{feedback}"
+    return call_llm(system="你是一位专业的研究员", user=prompt)
+
+def reviewer_agent(report):
+    prompt = f"请审查以下报告，列出需要修正的具体缺点。若无问题，请回复 'PASSED'：\n{report}"
+    return call_llm(system="你是一位严格的审查员", user=prompt)
+
+# 协作循环
+report = researcher_agent("AI Agent 2026 技术趋势")
+for i in range(3):
+    feedback = reviewer_agent(report)
+    if "PASSED" in feedback:
+        break
+    report = researcher_agent("AI Agent 2026 技术趋势", feedback)
+```
 
 ### ⚠ 但你真的需要 multi-agent 吗？
 

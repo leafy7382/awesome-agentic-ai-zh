@@ -256,6 +256,68 @@ MCP / Skills give the agent *more* abilities; **Hooks are the reverse: you attac
 
 ## 5.2 — MCP (Model Context Protocol) ⭐ Foundation
 
+### 5.2.0 — Transition Bridge from Traditional Tool Use to MCP & Decision Framework
+
+Before diving into the MCP specification, we must clarify a key concept: **Since we already learned Tool Use (Function Calling) in Stage 3, why go through the trouble of introducing a Client-Server protocol like MCP?**
+
+#### 1. Traditional In-Process Tool Use vs. MCP
+
+In the traditional pattern, tools are typically **in-process** functions executed directly within the main script. In MCP, tools are served by an **independent subprocess** acting as a server, and the host (Client/Host) communicates with it via JSON-RPC.
+
+Here is a side-by-side conceptual code comparison:
+
+```python
+# ==========================================
+# Traditional (In-Process): Tool is a local function
+# ==========================================
+from openai import OpenAI
+client = OpenAI()
+
+def my_local_tool(arg):
+    return f"Processed {arg}" # Runs in the same process
+
+# Tool schemas are passed directly in the API call
+resp = client.chat.completions.create(
+    model="qwen2.5:3b",
+    tools=[{"type": "function", "function": {"name": "my_local_tool", ...}}],
+    messages=[...]
+)
+# After getting tool_calls, call my_local_tool() directly in the script
+```
+
+```python
+# ==========================================
+# MCP Pattern (Client-Server): Tool is a subprocess service
+# ==========================================
+# The Host doesn't need to know how the tool is implemented; it just sends JSON-RPC requests.
+# The MCP Server executes the tool and returns the result in a standardized format.
+import asyncio
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def run_mcp_tool():
+    # Establish connection to an independent MCP server subprocess (using stdio)
+    server_params = StdioServerParameters(command="python", args=["server.py"])
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            # Initialize connection and auto-retrieve tool listings and schemas
+            await session.initialize()
+            # Call the tool running in the subprocess
+            result = await session.call_tool("my_remote_tool", arguments={"arg": "value"})
+            print(result.content)
+```
+
+#### 2. Why MCP? (Or Is It Not Always Necessary?)
+
+The essence of MCP is decoupling the "LLM Host" from the "Tool Provider". However, this decoupling introduces architectural complexity. Here is the decision matrix to guide your design:
+
+| Dimension | "No MCP" (Direct In-Process Integration) | "Use MCP" |
+| :--- | :--- | :--- |
+| **Use Case** | Building a single-purpose Agent; tools will only be used inside this project. | Writing a tool you want Cursor, Claude Code, and other developer Agent tools to use directly. |
+| **Runtime** | Tool functions and LLM orchestration code run in the same process, sharing memory. | Tools require independent environments (e.g., different languages, Docker sandboxes, databases). |
+| **Complexity** | Single project structure, trivial to debug and fast to prototype. | Modular microservices architecture; tool code updates and deploys independently. |
+| **Ops & Security** | Straightforward single-process deployment; suitable for trusted code. | Needs strict permission gates and sandboxed execution environments. |
+
 ### What is MCP (Positioning First)
 
 **MCP = an open protocol for "letting an LLM use any external tool or data."** Before MCP, every LLM vendor had to define their own tool specification, and every tool provider had to write a separate integration for each LLM. MCP **standardizes** this layer—write an MCP server once, and Claude / Codex / Cursor / any MCP-enabled host can use it.

@@ -256,6 +256,68 @@ MCP / Skills 是「給 agent 更多能力」；**Hooks 則是反過來：在 age
 
 ## 5.2 — MCP（Model Context Protocol）⭐ 基礎
 
+### 5.2.0 — 傳統 Tool Use 到 MCP 的過渡橋樑與決策架構
+
+在進入 MCP 協定前，我們必須先釐清一個關鍵概念：**既然我們在 Stage 3 已經學過 Tool Use（工具使用），為什麼還要大費周章引入 MCP 這種 Client-Server 協定？**
+
+#### 1. 傳統 In-Process Tool Use vs. MCP
+
+在傳統模式中，工具通常是**進程內（In-Process）**直接執行的函式；而在 MCP 中，工具由一個**獨立行程（Subprocess）**以伺服器（Server）的形式提供，主機端（Host/Client）透過 JSON-RPC 協定與其通訊。
+
+我們用一段並排的程式碼概念來理解兩者的差異：
+
+```python
+# ==========================================
+# 傳統模式 (In-Process)：工具是主程式內的一個函式
+# ==========================================
+from openai import OpenAI
+client = OpenAI()
+
+def my_local_tool(arg):
+    return f"Processed {arg}" # 工具直接在同一個行程執行
+
+# API 呼叫時直接傳入工具規格
+resp = client.chat.completions.create(
+    model="qwen2.5:3b",
+    tools=[{"type": "function", "function": {"name": "my_local_tool", ...}}],
+    messages=[...]
+)
+# 取得 tool_calls 後，在本地主程式直接執行 my_local_tool()
+```
+
+```python
+# ==========================================
+# MCP 模式 (Client-Server)：工具是由獨立子行程提供的服務
+# ==========================================
+# 主機端 (Host) 不需要知道工具如何實作，只負責發送 JSON-RPC 請求給 MCP 伺服器
+# MCP 伺服器 (Server) 負責執行工具，並以標準格式回傳結果
+import asyncio
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+async def run_mcp_tool():
+    # 建立與獨立 MCP 伺服器行程的連線 (使用 stdio)
+    server_params = StdioServerParameters(command="python", args=["server.py"])
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            # 初始化連線並自動取得工具清單與規格
+            await session.initialize()
+            # 呼叫遠端/子行程的工具
+            result = await session.call_tool("my_remote_tool", arguments={"arg": "value"})
+            print(result.content)
+```
+
+#### 2. 為什麼需要 MCP？（或其實不一定？）
+
+引入 MCP 的本質是為了解耦「模型主機端」與「工具提供端」。但這也帶來了系統複雜度，以下是決定是否使用 MCP 的決策矩陣：
+
+| 維度 | 選擇「不用 MCP」（直接進程內串接） | 選擇「使用 MCP」 |
+| :--- | :--- | :--- |
+| **開發場景** | 自建單一用途 Agent，工具只會在此專案中使用。 | 撰寫一個工具，希望 Cursor、Claude Code、其他人的 Agent 都能直接套用。 |
+| **運行環境** | 工具函式與 LLM 調用程式碼在同一個行程內執行，共享記憶體。 | 工具需要獨立運行環境（如不同開發語言、Docker 沙箱、外部資料庫連線）。 |
+| **架構複雜度** | 單一專案或簡單目錄，易於除錯與快速原型開發。 | 模組化微服務架構，工具程式碼會獨立更新與維護。 |
+| **維運與安全** | 簡單的單一服務部署，適合信任的本地程式。 | 需要獨立的權限管理與沙箱隔離機制。 |
+
 ### MCP 是什麼（先定位）
 
 **MCP = 「**讓 LLM 用任何外部工具 / 資料**」的開放協定**。在 MCP 之前每個 LLM 廠商都得自己定義 tool 規格、每個工具供應商都得為每個 LLM 寫一份接法。MCP 把這層**標準化**——寫一次 MCP server、Claude / Codex / Cursor / 任何支援 MCP 的 host 都能用。

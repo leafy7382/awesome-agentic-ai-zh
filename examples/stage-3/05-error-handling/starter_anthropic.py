@@ -68,8 +68,23 @@ def react_loop(question: str, max_iter: int = 5, client: Any = None) -> dict:
             return {"final": text, "trace": trace, "steps": step + 1}
         results = []
         for call in calls:
-            args = dict(call.input)
-            obs = fetch_weather(args["city"]) if call.name == "fetch_weather" else {"error": "unknown tool"}
+            args = dict(call.input) if call.input is not None else {}
+            # 處理 Tool 執行時的異常例外
+            try:
+                if call.name == "fetch_weather":
+                    city = args.get("city")
+                    if not city:
+                        obs = {"error": "Missing required argument 'city'"}
+                    else:
+                        obs = fetch_weather(city)
+                else:
+                    obs = {"error": f"Unknown tool: {call.name}"}
+            except Exception as e:
+                obs = {
+                    "error": "Tool execution failed due to an unexpected exception",
+                    "exception_type": type(e).__name__,
+                    "message": str(e),
+                }
             results.append({"type": "tool_result", "tool_use_id": call.id, "content": json.dumps(obs, ensure_ascii=False)})
             trace.append({"step": step, "thought": text, "tool": call.name, "tool_input": args, "obs": obs})
         messages.append({"role": "user", "content": results})
